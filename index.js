@@ -1,7 +1,10 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+
 const connection = require('./database/database');
-const questionModel = require('./database/Questions');
+const Question = require('./database/Questions');
+const Answer = require('./database/Answer');
+
 const app = express();
 
 connection
@@ -16,21 +19,68 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 
 app.get('/', (req, res) => {
-    res.status(200).render('index');
+    // SELECT * FROM forum
+    Question.findAll({ raw: true, order: [ ['id', 'DESC'] ] }).then(questions => {
+        res.status(200).render('index', {
+            questions
+        });
+    });
 });
 
 app.get('/ask', (req, res) => {
     res.status(200).render('ask');
 });
 
+app.get('/question/:id', (req, res) => {
+    const id = req.params.id;
+
+    Question.findOne({
+        where: { id }
+    }).then(question => {
+        if (question !== null) {
+
+            Answer.findAll({
+                where: {questionId: question.id},
+                order: [ ['id', 'DESC'] ]
+            }).then(answers => {
+                res.render('question', {
+                    question,
+                    answers
+                });
+            });
+        } else {
+            res.redirect('/');
+        }
+    })
+});
+
 app.post('/ask', (req, res) => {
     const title = req.body.title;
-    const desc = req.body.desc;
-    console.log(title, desc);
-    res.status(200).render('ask');
+    const description = req.body.desc;
+    
+    // INSERT INTO forum(title, desc) VALUES(...)
+    Question.create({
+        title,
+        description
+    }).then(() => {
+        res.status(201).redirect('/');
+    });
+});
+
+app.post('/question', (req, res) => {
+    const body = req.body.body;
+    const questionId = req.body.question;
+
+    Answer.create({
+        body,
+        questionId
+    }).then(() => {
+        res.redirect(`/question/${questionId}`);
+    })
 });
 
 app.listen(3000, (err) => {
     if (err) console.log(err);
     console.log('Server running!');
 });
+

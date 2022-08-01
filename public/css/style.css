@@ -19,3 +19,9 @@ span {
 #form-ask {
     margin-top: 5vh;
 }
+
+.flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
